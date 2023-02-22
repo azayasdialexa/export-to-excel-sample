@@ -1,133 +1,133 @@
 ﻿using ClosedXML.Excel;
+using DocumentFormat.OpenXml.Spreadsheet;
 using ExportToExcelSample.Models;
+using ExportToExcelSample.Utility;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 
 namespace ExportToExcelSample.Controllers
 {
     public class HomeController : Controller
     {
-        private readonly List<User> users = new()
-        {
-            new User
-            {
-                Id = 1,
-                Username = "ArminZia",
-                Email = "armin.zia@gmail.com",
-                SerialNumber = "NX33-AZ47",
-                JoinedOn = new DateTime(1988, 04, 20)
-            },
-            new User
-            {
-                Id = 2,
-                Username = "DoloresAbernathy",
-                Email = "dolores.abernathy@gmail.com",
-                SerialNumber = "CH1D-4AK7",
-                JoinedOn = new DateTime(2021, 03, 24)
-            },
-            new User
-            {
-                Id = 3,
-                Username = "MaeveMillay",
-                Email = "maeve.millay@live.com",
-                SerialNumber = "A33B-0JM2",
-                JoinedOn = new DateTime(2021, 03, 23)
-            },
-            new User
-            {
-                Id = 4,
-                Username = "BernardLowe",
-                Email = "bernard.lowe@hotmail.com",
-                SerialNumber = "H98M-LIP5",
-                JoinedOn = new DateTime(2021, 03, 10)
-            },
-            new User
-            {
-                Id = 5,
-                Username = "ManInBlack",
-                Email = "maininblack@gmail.com",
-                SerialNumber = "XN01-UT6C",
-                JoinedOn = new DateTime(2021, 03, 9)
-            }
-        };
-
         public IActionResult Index()
         {
-            return View(users);
+            return View(DataStorage.GetAllAvailable());
         }
-
         public IActionResult Csv()
         {
+            var availableMarkets = DataStorage.GetAllMarkets();
+            var availableSummaries = DataStorage.GetAllAvailable();
             var builder = new StringBuilder();
 
-            builder.AppendLine("Id,Username,Email,JoinedOn,SerialNumber");
+            builder.AppendLine("Market Id,Address,City,State,Total Sf,Clear Ht,Doors,Avail Date,List Rep,Rep Email");
 
-            foreach (var user in users)
+            foreach (var market in availableMarkets)
             {
-                builder.AppendLine($"{user.Id},{user.Username},{user.Email},{user.JoinedOn.ToShortDateString()},{user.SerialNumber}");
+                foreach (var summary in availableSummaries.Where(s => s.MarketId == market.MarketId))
+                {
+                    builder.AppendLine($"{summary.MarketId}," +
+                        $"{summary.Address}," +
+                        $"{summary.City}," +
+                        $"{summary.State}," +
+                        $"{summary.TotalSf}," +
+                        $"{summary.ClearHt}," +
+                        $"{summary.Doors}," +
+                        $"{summary.AvailableDate.ToShortDateString()}," +
+                        $"{summary.ListingRep}," +
+                        $"{summary.RepEmail}");
+                }
             }
-
-            return File(Encoding.UTF8.GetBytes(builder.ToString()), "text/csv", "users.csv");
+            return File(Encoding.UTF8.GetBytes(builder.ToString()), "text/csv", "markets.csv");
         }
-
         public IActionResult Excel()
         {
+            var availableMarkets = DataStorage.GetAllMarkets();
+            var availableSummaries = DataStorage.GetAllAvailable();
             using var workbook = new XLWorkbook();
-            var worksheet = workbook.Worksheets.Add("Users");
-            var currentRow = 1;
 
-            worksheet.Row(currentRow).Height = 25.0;
-            worksheet.Row(currentRow).Style.Font.Bold = true;
-            worksheet.Row(currentRow).Style.Fill.BackgroundColor = XLColor.LightGray;
-            worksheet.Row(currentRow).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
-
-            worksheet.Cell(currentRow, 1).Value = "Id";
-            worksheet.Cell(currentRow, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-
-            worksheet.Cell(currentRow, 2).Value = "Username";
-            worksheet.Cell(currentRow, 3).Value = "Email";
-
-            worksheet.Cell(currentRow, 4).Value = "Serial Number";
-            worksheet.Cell(currentRow, 4).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-
-            worksheet.Cell(currentRow, 5).Value = "Joined On";
-            worksheet.Cell(currentRow, 5).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-
-            foreach (var user in users)
+            foreach (var market in availableMarkets)
             {
-                currentRow++;
+                var row = 1;
+                var worksheet = workbook.Worksheets.Add(market.Name).SetTabColor(XLColor.FromName(market.TabColor));
 
-                worksheet.Row(currentRow).Height = 20.0;
-                worksheet.Row(currentRow).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+                worksheet.Row(row).Height = 25.0;
+                worksheet.Row(row).Style.Font.Bold = true;
+                worksheet.Row(row).Style.Font.FontColor = XLColor.Black;
+                worksheet.Row(row).Style.Fill.BackgroundColor = XLColor.LightGray;
+                worksheet.Row(row).Style.Alignment.Vertical = XLAlignmentVerticalValues.Bottom;
 
-                worksheet.Cell(currentRow, 1).Value = user.Id;
-                worksheet.Cell(currentRow, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                var col = 0;
+                col++; worksheet.Cell(row, col).Value = "Market Id"; 
+                col++; worksheet.Cell(row, col).Value = "Address";
+                col++; worksheet.Cell(row, col).Value = "City";
+                col++; worksheet.Cell(row, col).Value = "State";
+                col++; worksheet.Cell(row, col).Value = "Total Sf"; 
+                col++; worksheet.Cell(row, col).Value = "Clear Ht"; 
+                col++; worksheet.Cell(row, col).Value = "Doors"; 
+                col++; worksheet.Cell(row, col).Value = "Avail Date"; 
+                col++; worksheet.Cell(row, col).Value = "List Rep";
 
-                worksheet.Cell(currentRow, 2).Value = user.Username;
+                worksheet.RangeUsed().SetAutoFilter();
 
-                worksheet.Cell(currentRow, 3).Value = user.Email;
-                worksheet.Cell(currentRow, 3).Hyperlink.ExternalAddress = new Uri($"mailto:{user.Email}");
+                foreach (var summary in availableSummaries.Where(s => s.MarketId == market.MarketId))
+                {
+                    row++;
+                    worksheet.Row(row).Height = 20.0;
+                    worksheet.Row(row).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
 
-                worksheet.Cell(currentRow, 4).Value = user.SerialNumber;
-                worksheet.Cell(currentRow, 4).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-                worksheet.Cell(currentRow, 4).Style.Fill.BackgroundColor = XLColor.PersianBlue;
-                worksheet.Cell(currentRow, 4).Style.Font.FontColor = XLColor.WhiteSmoke;
+                    col = 0;
+                    col++; worksheet.Cell(row, col).Value = summary.MarketId;
+                    worksheet.Cell(row, col).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                    worksheet.Cell(row, col).DataType = XLDataType.Number;
 
-                worksheet.Cell(currentRow, 5).Value = user.JoinedOn.ToShortDateString();
-                worksheet.Cell(currentRow, 5).DataType = XLDataType.DateTime;
-                worksheet.Cell(currentRow, 5).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                    col++; worksheet.Cell(row, col).Value = summary.Address;
+                    col++; worksheet.Cell(row, col).Value = summary.City;
+                    col++; worksheet.Cell(row, col).Value = summary.State;
+                    worksheet.Cell(row, col).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
 
-                worksheet.Columns().AdjustToContents();
+                    col++; worksheet.Cell(row, col).Value = summary.TotalSf;
+                    worksheet.Cell(row, col).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Right;
+                    worksheet.Cell(row, col).DataType = XLDataType.Number;
+                    worksheet.Cell(row, col).Style.NumberFormat.Format = "#,##0";
+                    worksheet.Column(col).AddConditionalFormat().WhenEqualOrGreaterThan(750000).Font.FontColor = XLColor.Purple;
+                    worksheet.Column(col).AddConditionalFormat().WhenEqualOrGreaterThan(750000).Font.Bold = true;
+                    worksheet.Column(col).AddConditionalFormat().WhenEqualOrLessThan(250000).Font.FontColor = XLColor.Red;
+                    worksheet.Column(col).AddConditionalFormat().WhenEqualOrLessThan(250000).Font.Bold = true;
+
+                    col++; worksheet.Cell(row, col).Value = summary.ClearHt;
+                    worksheet.Cell(row, col).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Right;
+                    worksheet.Cell(row, col).DataType = XLDataType.Number;
+
+                    col++; worksheet.Cell(row, col).Value = summary.Doors;
+                    worksheet.Cell(row, col).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Right;
+                    worksheet.Cell(row, col).DataType = XLDataType.Number;
+
+                    worksheet.Column(col).AddConditionalFormat().WhenEquals(0).Font.FontColor = XLColor.Crimson;
+                    worksheet.Column(col).AddConditionalFormat().WhenEquals(0).Font.Bold = true;
+                    worksheet.Column(col).AddConditionalFormat().WhenEqualOrGreaterThan(100).Font.FontColor = XLColor.Purple;
+                    worksheet.Column(col).AddConditionalFormat().WhenEqualOrGreaterThan(100).Font.Bold = true;
+
+                    col++; worksheet.Cell(row, col).Value = summary.AvailableDate.ToShortDateString();
+                    worksheet.Cell(row, col).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Right;
+                    worksheet.Cell(row, col).DataType = XLDataType.DateTime;
+                    worksheet.Column(col).AddConditionalFormat().WhenLessThan(DateTime.Now.ToOADate()).Font.FontColor = XLColor.Purple;
+                    worksheet.Column(col).AddConditionalFormat().WhenLessThan(DateTime.Now.ToOADate()).Font.Bold = true;
+
+                    col++; worksheet.Cell(row, col).Value = summary.ListingRep;
+                    worksheet.Cell(row, col).Hyperlink.ExternalAddress = new Uri($"mailto:{summary.RepEmail}");
+                }
+                worksheet.Columns().AdjustToContents(); // NOTE: Adjust contents after adding all columns
             }
 
             using var stream = new MemoryStream();
             workbook.SaveAs(stream);
             var content = stream.ToArray();
 
-            return File(content, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "users.xlsx");
+            return File(content, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "markets.xlsx");
         }
     }
 }

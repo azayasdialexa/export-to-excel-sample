@@ -1,4 +1,4 @@
-﻿@model IEnumerable<ExportToExcelSample.Models.User>
+﻿@model IEnumerable<ExportToExcelSample.Models.Available>
 
 @{
     ViewData["Title"] = "Home";
@@ -6,31 +6,41 @@
 
 <div class="row">
     <div class="col">
-        <a class="btn btn-primary" asp-controller="Home" asp-action="Csv">Export to Csv</a>
+        <a class="btn btn-primary" asp-controller="Home" asp-action="Csv">Export to CSV</a>
         <a class="btn btn-primary" asp-controller="Home" asp-action="Excel">Export to Excel</a>
 
         <hr />
 
-        <div class="table-responsive">
-            <table class="table table-striped">
+        <div>
+            <table class="table-slim table-striped">
                 <thead class="thead-light">
                     <tr>
-                        <th class="text-center" width="50">ID</th>
-                        <th>Username</th>
-                        <th>Email</th>
-                        <th class="text-center" width="140">Serial Number</th>
-                        <th class="text-center" width="140">Joined On</th>
+                        <th>MarketId</th>
+                        <th>Address</th>
+                        <th>City</th>
+                        <th>State</th>
+                        <th>Total Sf</th>
+                        <th>Clear Ht</th>
+                        <th>Doors</th>
+                        <th>Avail Date</th>
+                        <th>List Rep</th>
+                        <th>Rep Email</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach (var user in Model)
+                    @foreach (var summary in Model)
                     {
-                        <tr>
-                            <td class="text-center">@user.Id</td>
-                            <td>@user.Username</td>
-                            <td>@user.Email</td>
-                            <td class="text-center">@user.SerialNumber</td>
-                            <td class="text-center">@user.JoinedOn.ToString("MMM dd yyyy")</td>
+                        <tr class="slim-row">
+                            <td>@summary.MarketId</td>
+                            <td>@summary.Address</td>
+                            <td>@summary.City</td>
+                            <td>@summary.State</td>
+                            <td>@summary.TotalSf</td>
+                            <td>@summary.ClearHt</td>
+                            <td>@summary.Doors</td>
+                            <td>@summary.AvailableDate.ToString("yyyy MMM dd")</td>
+                            <td>@summary.ListingRep</td>
+                            <td>@summary.RepEmail</td>
                         </tr>
                     }
                 </tbody>
